@@ -1,6 +1,7 @@
+package DateTime::Format::EXIF;
+
 use strict;
 use warnings;
-package DateTime::Format::EXIF;
 
 # ABSTRACT: DateTime parser for EXIF timestamps
 
@@ -18,16 +19,21 @@ DateTime parser for EXIF timestamps
 
 =cut
 
+
+sub _make_regex {
+    my $date_re = '(\d{4}) : (\d{2}) : (\d{2})';
+    my $time_re = '(\d{2}) : (\d{2}) : (\d{2} (?: \. \d{1,9})?)';
+    my $tz_re = '(Z | [\+\-] \d{2} : \d{2})';
+    return qr/^ $date_re \s $time_re $tz_re? $/xms;
+}
+
+
 use DateTime::Format::Builder (
     parsers => {
         parse_datetime => [
             {
                 params => [ qw( year month day hour minute second time_zone ) ],
-                regex  => qr/   ^
-                                (\d\d\d\d):(\d\d):(\d\d) \s
-                                (\d\d):(\d\d):(\d\d (?:\.\d{1,9})?)
-                                (Z | [\+\-]\d\d:\d\d)?
-                                $/xms,
+                regex  => _make_regex(),
                 postprocess => \&_postprocess,
             },
         ],
@@ -48,7 +54,7 @@ sub _postprocess {
     }
 
     # nanoseconds
-    my ($s, $fs) = split /(?=\.)/ => $p->{second};
+    my ($s, $fs) = split /(?=\.)/x => $p->{second};
     $p->{second} = $s;
     $p->{nanosecond} = int($fs * 1e9)  if $fs;
 
