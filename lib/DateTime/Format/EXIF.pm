@@ -22,7 +22,7 @@ DateTime parser for EXIF timestamps
 
 sub _make_regex {
     my $date_re = '(\d{4}) : (\d{2}) : (\d{2})';
-    my $time_re = '(\d{2}) : (\d{2}) : (\d{2} (?: \. \d{1,9})?)';
+    my $time_re = '(\d{2}) : (\d{2}) : (\d{2}) (\. \d{1,9})?';
     my $tz_re = '(Z | [\+\-] \d{2} : \d{2})';
     return qr/^ $date_re \s $time_re $tz_re? $/xms;
 }
@@ -32,7 +32,7 @@ use DateTime::Format::Builder (
     parsers => {
         parse_datetime => [
             {
-                params => [ qw( year month day hour minute second time_zone ) ],
+                params => [ qw( year month day hour minute second nanosecond time_zone ) ],
                 regex  => _make_regex(),
                 postprocess => \&_postprocess,
             },
@@ -54,9 +54,9 @@ sub _postprocess {
     }
 
     # nanoseconds
-    my ($s, $fs) = split /(?=\.)/x => $p->{second};
-    $p->{second} = $s;
-    $p->{nanosecond} = int($fs * 1e9)  if $fs;
+    if (my $fs = delete $p->{nanosecond}) {
+        $p->{nanosecond} = int($fs * 1e9);
+    }
 
     return $date;
 }
